@@ -39,7 +39,7 @@ class Visual:
         pass
 
     def draw(self):
-        #self.screen.fill((255, 255, 255))
+        self.screen.fill((255, 255, 255))
         self.circuit.draw(self.screen)
         for v in self.vehicles:
             v.draw(self.screen,self.circuit)

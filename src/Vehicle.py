@@ -141,7 +141,21 @@ class Vehicle:
         self.y += self.current_y_velocity * dt
 
     def check_collision(self, circuit:Circuit):
-        pass
+        t, x, y = circuit.nearest_curve_point(self.x, self.y)
+        v_wall1, v_wall2 = circuit.off_positions(t)
+        v_dist1 = v_wall1[0] - self.x, v_wall1[1] - self.y
+        v_dist2 = v_wall2[0] - self.x, v_wall2[1] - self.y
+        norm1 = (v_dist1[0]**2+v_dist1[1]**2)**0.5
+        norm2 = (v_dist2[0]**2+v_dist2[1]**2)**0.5
+
+        u1 = (v_dist1[0]/norm1, v_dist1[1]/norm1)
+        u2 = (v_dist2[0]/norm2, v_dist2[1]/norm2)
+
+        dot = u1[0]*u2[0] + u1[1]*u2[1]
+        return dot > 1 - 1e-6
+
+
+
 
     def set_steer_angle(self, steer_angle):
         self.steer_angle = steer_angle
@@ -159,8 +173,11 @@ class Vehicle:
         self.steer_angle *= self.steer_reposition
 
         if circuit is not None:
-            self.check_collision(circuit)
-
+            if self.check_collision(circuit):
+                self.hp -= 1
+                print("colision")
+        if self.hp == 0:
+                    print("game over")
     def get_pos(self):
         return self.x, self.y
 

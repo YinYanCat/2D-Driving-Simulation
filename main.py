@@ -62,7 +62,6 @@ def main():
             vehicle.set_steer_angle(steer_angle*0.5)
 
         vehicle.update(dt,circuit)
-        print((vehicle.current_x_velocity**2 + vehicle.current_y_velocity**2)**(1/2))
         visual.draw()
 
 if __name__ == '__main__':
