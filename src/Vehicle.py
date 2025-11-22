@@ -51,6 +51,7 @@ class Vehicle:
     def damage_vehicle(self):
         if self.hp >=1:
             self.hp -=1
+            print(f"lives: {self.hp}")
         else:
             self.hp = 0
 
@@ -174,10 +175,15 @@ class Vehicle:
 
         if circuit is not None:
             if self.check_collision(circuit):
-                self.hp -= 1
-                print("colision")
-        if self.hp == 0:
-                    print("game over")
+                self.current_x_velocity = 0
+                self.current_y_velocity = 0
+                self.current_x_force = 0
+                self.current_y_force = 0
+                self.damage_vehicle()
+                t, x, y = circuit.nearest_curve_point(px=self.x, py=self.y)
+                self.set_heading(circuit.angle_of_curve(t))
+                self.set_pos(x,y)
+
     def get_pos(self):
         return self.x, self.y
 
@@ -190,4 +196,3 @@ class Vehicle:
         else:
             pygame.draw.circle(screen, (255,0,0),(self.x, self.y),0.3*self.scale)
         pygame.display.flip()
-

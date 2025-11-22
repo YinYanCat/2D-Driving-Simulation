@@ -64,7 +64,7 @@ class Circuit:
         # Escala uniforme
         self.scale = min(width / range_x, height / range_y)
 
-    def nearest_curve_point(self, px, py, max_iter=20, tol=1e-6):
+    def nearest_curve_point(self, px, py, max_iter=1000, tol=1e-6):
         """
         Computes the nearest point on the curve C(t)=(x(t),y(t))
         using Newton iteration on f(t) = (C(t)-P)·C'(t).
