@@ -5,14 +5,19 @@ import numpy as np
 import pygame
 
 class Circuit:
-    def __init__(self, x_func, y_func, var_symbol, variable_start=0, variable_finish=10, draw_points=500, circuit_width=1):
+    def __init__(self, x_func, y_func, var_symbol, variable_start=0, variable_finish=10, circuit_width=1):
         self.function = [x_func,y_func]
         self.var = var_symbol
+
         self.variable_start = variable_start
         self.variable_finish = variable_finish
-        self.derivate = [diff(x_func,self.var), diff(y_func, self.var)]
-        self.tangent_norm = sqrt(self.derivate[0]**2 + self.derivate[1]**2)
-        self.normal_vector = [-self.derivate[1]/self.tangent_norm, self.derivate[0]/self.tangent_norm]
+
+        self.dx = diff(x_func,self.var)
+        self.dy = diff(y_func, self.var)
+        self.ddx = diff(self.dx, self.var)
+        self.ddy = diff(self.dy, self.var)
+        self.tangent_norm = sqrt(self.dx**2 + self.dy**2)
+        self.normal_vector = [-self.dy/self.tangent_norm, self.dx/self.tangent_norm]
 
         self.circuit_width = circuit_width
 
@@ -21,20 +26,66 @@ class Circuit:
         self.x_off2 = x_func - circuit_width * self.normal_vector[0]
         self.y_off2 = y_func - circuit_width * self.normal_vector[1]
 
-        ts = np.linspace(variable_start, variable_finish, draw_points)
-        self.ts = ts
-        self.x_vals = np.array([float(x_func.subs(var_symbol, t)) for t in ts])
-        self.y_vals = np.array([float(y_func.subs(var_symbol, t)) for t in ts])
-        self.x1 = np.array([float(self.x_off1.subs(var_symbol, t)) for t in ts])
-        self.y1 = np.array([float(self.y_off1.subs(var_symbol, t)) for t in ts])
-        self.x2 = np.array([float(self.x_off2.subs(var_symbol, t)) for t in ts])
-        self.y2 = np.array([float(self.y_off2.subs(var_symbol, t)) for t in ts])
+        # Lambdify
+        self._Cx    = lambdify(self.var, x_func, "numpy")
+        self._Cy    = lambdify(self.var, y_func, "numpy")
+        self._Cdx   = lambdify(self.var, self.dx, "numpy")
+        self._Cdy   = lambdify(self.var, self.dy, "numpy")
+        self._Cddx  = lambdify(self.var, self.ddx, "numpy")
+        self._Cddy  = lambdify(self.var, self.ddy, "numpy")
+
+        # Lambdify de offsets
+        self._x1f = lambdify(self.var, self.x_off1, "numpy")
+        self._y1f = lambdify(self.var, self.y_off1, "numpy")
+        self._x2f = lambdify(self.var, self.x_off2, "numpy")
+        self._y2f = lambdify(self.var, self.y_off2, "numpy")
+
+        self.ts = None
+        self.x_vals = None
+        self.y_vals = None
+        self.x1 = None
+        self.y1 = None
+        self.x2 = None
+        self.y2 = None
+
+        self.calculate_draw_points()
 
         self.scale = 1
         self.x_min = 0
         self.y_min = 0
         self.width = 1
         self.height = 1
+
+
+    def calculate_draw_points(self, delta_s=0.05):
+        t_temp = np.linspace(self.variable_start, self.variable_finish, 5000)
+        x_temp = np.array([float(self.function[0].subs(self.var, t)) for t in t_temp])
+        y_temp = np.array([float(self.function[1].subs(self.var, t)) for t in t_temp])
+
+        dx = np.diff(x_temp)
+        dy = np.diff(y_temp)
+        ds = np.sqrt(dx ** 2 + dy ** 2)
+        L = ds.sum()  # longitud total
+
+        # Cantidad óptima de puntos
+        n_samples = max(100, int(L / delta_s))
+        # -----------------------------
+        # Construir ts definitivo
+        # -----------------------------
+        ts = np.linspace(self.variable_start, self.variable_finish, n_samples)
+
+        self.ts = ts
+
+        # Valores base de la curva
+        self.x_vals = self._Cx(ts)
+        self.y_vals = self._Cy(ts)
+
+        # Offsets
+        self.x1 = self._x1f(ts)
+        self.y1 = self._y1f(ts)
+        self.x2 = self._x2f(ts)
+        self.y2 = self._y2f(ts)
+
 
     def get_width(self):
         return self.circuit_width
@@ -46,7 +97,7 @@ class Circuit:
     def angle_at_start(self):
         return self.angle_of_curve(self.variable_start)
 
-    def fit(self, width, height, draw_points=500):
+    def fit(self, width, height):
 
         self.width = width
         self.height = height
@@ -64,44 +115,23 @@ class Circuit:
         # Escala uniforme
         self.scale = min(width / range_x, height / range_y)
 
-    def nearest_curve_point(self, px, py, max_iter=1000, tol=1e-6):
+    def nearest_curve_point(self, px, py, newton_steps=30, tol=1e-8):
         """
-        Computes the nearest point on the curve C(t)=(x(t),y(t))
-        using Newton iteration on f(t) = (C(t)-P)·C'(t).
+        Encuentra el punto en la curva que minimiza la distancia a (px, py).
+        Combina sampling + Newton para mayor estabilidad.
 
-        px, py   : point in WORLD space
-        returns  : (t, x(t), y(t))
+        Retorna: (t_min, x(t_min), y(t_min)).
         """
 
-        # Pre-built lambdas for efficiency (build once)
-        if not hasattr(self, "_proj_initialized"):
-            t = self.var
+        ts = self.ts
+        xs = self._Cx(ts)
+        ys = self._Cy(ts)
 
-            # first derivatives (you already computed these)
-            dx = self.derivate[0]
-            dy = self.derivate[1]
+        d2 = (xs - px) ** 2 + (ys - py) ** 2
+        t_curr = self.ts[np.argmin(d2)]
 
-            # second derivatives
-            ddx = dx.diff(t)
-            ddy = dy.diff(t)
-
-            # lambdify curve position, first & second derivatives
-            self._Cx  = lambdify(t, self.function[0], "numpy")
-            self._Cy  = lambdify(t, self.function[1], "numpy")
-            self._Cdx = lambdify(t, dx, "numpy")
-            self._Cdy = lambdify(t, dy, "numpy")
-            self._Cddx = lambdify(t, ddx, "numpy")
-            self._Cddy = lambdify(t, ddy, "numpy")
-
-            self._proj_initialized = True
-
-        # Initial guess: nearest t by roughly matching x(t)
-        # This is NOT the final result, but a useful starting point.
-        t0 = np.clip(px, self.variable_start, self.variable_finish)
-
-        t_curr = t0
-
-        for _ in range(max_iter):
+        # --------------- 2. NEWTON PARA REFINAR ----------------
+        for i in range(newton_steps):
             Cx = self._Cx(t_curr)
             Cy = self._Cy(t_curr)
             Cdx = self._Cdx(t_curr)
@@ -116,14 +146,12 @@ class Circuit:
             f = rx * Cdx + ry * Cdy
 
             # f'(t)
-            fp = (Cdx*Cdx + Cdy*Cdy) + (rx * Cddx + ry * Cddy)
+            fp = (Cdx * Cdx + Cdy * Cdy) + (rx * Cddx + ry * Cddy)
 
             if abs(fp) < 1e-12:
-                break  # Avoid division by near-zero
+                break
 
             t_new = t_curr - f / fp
-
-            # clamp to valid domain
             t_new = np.clip(t_new, self.variable_start, self.variable_finish)
 
             if abs(t_new - t_curr) < tol:
@@ -132,13 +160,12 @@ class Circuit:
 
             t_curr = t_new
 
-        # Return nearest point
+        # Resultado final
         return t_curr, float(self._Cx(t_curr)), float(self._Cy(t_curr))
 
-
     def angle_of_curve(self, t):
-        dx_val = float(self.derivate[0].subs(self.var, t))
-        dy_val = float(self.derivate[1].subs(self.var, t))
+        dx_val = float(self.dx.subs(self.var, t))
+        dy_val = float(self.dy.subs(self.var, t))
         return np.arctan2(dy_val,dx_val)
 
     def off_positions(self, t):

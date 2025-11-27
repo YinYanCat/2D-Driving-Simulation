@@ -5,7 +5,7 @@ from src.Circuit import Circuit
 
 
 class Vehicle:
-    def __init__(self, gear_ratio, weight=100, friction_coef=0.1, max_force=1, max_brake=1, max_velocity=100, max_hp=3, max_resources=100, steer_reposition=0.95, lateral_grip=8.0, start_x=0, start_y=0):
+    def __init__(self, gear_ratio, weight=100, friction_coef=0.1, max_force=1, max_brake=1, max_velocity=100, max_hp=3, max_resources=100, steer_reposition=0.95, lateral_grip=8.0, width=0.3, start_x=0, start_y=0):
         self.scale = 1
         self.lateral_grip = lateral_grip
         self.steer_reposition = steer_reposition
@@ -32,8 +32,10 @@ class Vehicle:
         self.current_x_velocity = 0
         self.current_y_velocity = 0
 
-        self.x = 0
-        self.y = 0
+
+        self.width = width
+        self.x = start_x
+        self.y = start_y
 
     def set_pos(self, x, y):
         self.x = x
@@ -144,18 +146,22 @@ class Vehicle:
     def check_collision(self, circuit:Circuit):
         t, x, y = circuit.nearest_curve_point(self.x, self.y)
         v_wall1, v_wall2 = circuit.off_positions(t)
-        v_dist1 = v_wall1[0] - self.x, v_wall1[1] - self.y
-        v_dist2 = v_wall2[0] - self.x, v_wall2[1] - self.y
-        norm1 = (v_dist1[0]**2+v_dist1[1]**2)**0.5
-        norm2 = (v_dist2[0]**2+v_dist2[1]**2)**0.5
+        v_dist1 = np.array(v_wall1) - np.array([self.x, self.y])
+        v_dist2 = np.array(v_wall2) - np.array([self.x, self.y])
+        norm1 = np.linalg.norm(v_dist1)
+        norm2 = np.linalg.norm(v_dist2)
 
-        u1 = (v_dist1[0]/norm1, v_dist1[1]/norm1)
-        u2 = (v_dist2[0]/norm2, v_dist2[1]/norm2)
+        u1 = v_dist1 / norm1
+        u2 = v_dist2 / norm2
 
-        dot = u1[0]*u2[0] + u1[1]*u2[1]
+        v_dist1_shrink = v_dist1 - self.width/2 * u1
+        v_dist2_shrink = v_dist2 - self.width/2 * u2
+
+        u1_shrink = v_dist1_shrink / np.linalg.norm(v_dist1_shrink)
+        u2_shrink = v_dist2_shrink / np.linalg.norm(v_dist2_shrink)
+
+        dot = np.dot(u1_shrink, u2_shrink)
         return dot > 1 - 1e-6
-
-
 
 
     def set_steer_angle(self, steer_angle):
@@ -194,5 +200,5 @@ class Vehicle:
         if circuit:
             pygame.draw.circle(screen, (255, 0, 0), circuit.world_to_screen(self.x, self.y), 0.3 * self.scale)
         else:
-            pygame.draw.circle(screen, (255,0,0),(self.x, self.y),0.3*self.scale)
+            pygame.draw.circle(screen, (255,0,0),(self.x, self.y),self.width*self.scale)
         pygame.display.flip()

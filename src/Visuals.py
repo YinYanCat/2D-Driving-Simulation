@@ -27,6 +27,9 @@ class Visual:
 
     def fit_screen(self, width, height):
         self.circuit.fit(width, height)
+        self.scale = self.circuit.get_scale()
+        for v in self.vehicles:
+            v.set_scale(self.scale)
 
     def add_vehicle(self, vehicle:Vehicle):
         vehicle.set_scale(self.scale)
