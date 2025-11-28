@@ -90,6 +90,14 @@ class Vehicle:
         self.current_x_force = 0
         self.current_y_force = 0
 
+    def force_stop(self):
+        self.current_x_velocity = 0
+        self.current_y_velocity = 0
+
+    def bounce_out(self, circuit):
+        t, x, y = circuit.nearest_curve_point(px=self.x, py=self.y)
+        self.set_pos((self.x+x)/2, (self.y+y)/2)
+
     def accelerate(self):
         if self.hp <= 0:
             self.current_x_force = 0
@@ -178,17 +186,6 @@ class Vehicle:
         self.calculate_position(dt)
 
         self.steer_angle *= self.steer_reposition**dt
-
-        if circuit is not None:
-            if self.check_collision(circuit):
-                self.current_x_velocity = 0
-                self.current_y_velocity = 0
-                self.current_x_force = 0
-                self.current_y_force = 0
-                self.damage_vehicle()
-                t, x, y = circuit.nearest_curve_point(px=self.x, py=self.y)
-                self.set_heading(circuit.angle_of_curve(t))
-                self.set_pos(x,y)
 
     def get_pos(self):
         return self.x, self.y
