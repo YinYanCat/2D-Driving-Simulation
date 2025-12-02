@@ -5,7 +5,7 @@ from src.Circuit import Circuit
 
 
 class Vehicle:
-    def __init__(self, gear_ratio, weight=100, friction_coef=0.1, max_force=1, max_brake=1, max_velocity=100, max_hp=3, max_resources=100, steer_reposition=0.05, lateral_grip=8.0, width=0.3, start_x=0, start_y=0):
+    def __init__(self, gear_ratio, weight=100, friction_coef=0.1, max_force=1, max_brake=1, max_velocity=100, max_hp=30, max_resources=100, steer_reposition=0.05, lateral_grip=8.0, width=0.3, start_x=0, start_y=0):
         self.scale = 1
         self.lateral_grip = lateral_grip
         self.steer_reposition = steer_reposition
@@ -195,6 +195,6 @@ class Vehicle:
 
     def draw(self, screen, circuit=None):
         if circuit:
-            pygame.draw.circle(screen, (255, 0, 0), circuit.world_to_screen(self.x, self.y), 0.3 * self.scale)
+            pygame.draw.circle(screen, (0, 0, 255), circuit.world_to_screen(self.x, self.y), 0.3 * self.scale)
         else:
-            pygame.draw.circle(screen, (255,0,0),(self.x, self.y),self.width*self.scale)
+            pygame.draw.circle(screen, (0,0,255),(self.x, self.y),self.width*self.scale)

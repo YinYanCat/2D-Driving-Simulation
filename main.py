@@ -5,7 +5,7 @@ from sympy import symbols
 from sympy.functions import *
 import numpy as np
 import pygame
-import random
+
 
 def player_main():
     t = symbols("t")
@@ -16,7 +16,7 @@ def player_main():
     visual.add_vehicle(vehicle)
     visual.set_circuit(circuit)
     x,y = circuit.get_start()
-    print(x,y)
+    #print(x,y)
     vehicle.set_pos(x,y)
     vehicle.set_heading(circuit.angle_at_start())
     pygame.init()
@@ -24,8 +24,15 @@ def player_main():
     clock = pygame.time.Clock()
     running = True
 
+    traffic_lights_cicle = 0
+
     while running:
         dt = clock.tick(60) / 1000  # segundos por frame
+
+        traffic_lights_cicle+=1
+        if traffic_lights_cicle == 20:
+            circuit.cicle_lights_state()
+            traffic_lights_cicle = 0
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -43,6 +50,8 @@ def player_main():
             vehicle.change_gear(2)
         if keys[pygame.K_3]:
             vehicle.change_gear(3)
+        if keys[pygame.K_4]:
+            vehicle.change_gear(4)
         if keys[pygame.K_SPACE]:
             vehicle.brake(dt)
 
@@ -73,7 +82,7 @@ def player_main():
 def main():
     t = symbols("t")
     circuit = Circuit(x_func=t, y_func=sin(t), var_symbol=t, variable_start=-10, variable_finish=10)
-    vehicle = Vehicle(gear_ratio=[0, 3.5, 1.7, 0.25], friction_coef=1, max_velocity=10, max_brake=500, max_force=100)
+    vehicle = Vehicle(gear_ratio=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500, max_force=100)
 
     visual = Visual()
     visual.add_vehicle(vehicle)
