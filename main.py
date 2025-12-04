@@ -55,6 +55,12 @@ def player_main():
         if keys[pygame.K_SPACE]:
             vehicle.brake(dt)
 
+        if keys[pygame.K_p]:
+            tem_x, tem_y = vehicle.get_pos()
+            tem_x, tem_y = circuit.world_to_screen(tem_x, tem_y)
+            tem_scale = circuit.get_scale()*0.6
+            visual.take_circular_ss(tem_x-tem_scale*4, tem_y-tem_scale*4, tem_scale*8, tem_scale*8)
+
         elif keys[pygame.K_LSHIFT]:
             vehicle.accelerate()
         else:
@@ -77,7 +83,9 @@ def player_main():
             vehicle.force_stop()
             vehicle.damage_vehicle()
             vehicle.bounce_out(circuit)
+
         visual.draw()
+
 
 def main():
     t = symbols("t")

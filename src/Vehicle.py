@@ -41,6 +41,9 @@ class Vehicle:
         self.x = x
         self.y = y
 
+    def set_scale(self, scale):
+        self.scale = scale
+
     def set_heading(self, angle):
         self.heading = angle
 
@@ -171,10 +174,8 @@ class Vehicle:
         dot = np.dot(u1_shrink, u2_shrink)
         return dot > 1 - 1e-6
 
-
     def set_steer_angle(self, steer_angle):
         self.steer_angle = steer_angle
-
 
     def update(self, dt, circuit=None):
         self.calculate_speed(dt)
@@ -189,9 +190,6 @@ class Vehicle:
 
     def get_pos(self):
         return self.x, self.y
-
-    def set_scale(self, scale):
-        self.scale = scale
 
     def draw(self, screen, circuit=None):
         if circuit:
