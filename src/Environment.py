@@ -1,10 +1,11 @@
+from numpy import random
+
 from src.Circuit import Circuit
 from src.Vehicle import Vehicle
 from src.Visuals import Visual
 from sympy import symbols
 from sympy.functions import *
 import numpy as np
-import pygame
 
 
 class Environment:
@@ -15,6 +16,21 @@ class Environment:
         self.visual = None
         self.vehicle = None
         self.circuit = None
+
+        self.action_space = {
+            "gear_change": [0, 1, 2, 3, 4],
+            "brake": [0, 1],
+            "accel": [0, 1],
+            "steer": [-1, -0.5, 0, 0.5, 1]
+        }
+
+    def sample_action(self):
+        return [
+            random.choice(self.action_space["gear_change"]),
+            random.choice(self.action_space["brake"]),
+            random.choice(self.action_space["accel"]),
+            random.choice(self.action_space["steer"])
+        ]
 
     def reset(self):
         self.progress = 0
@@ -36,6 +52,8 @@ class Environment:
         return image, state
 
     def step(self, action, dt=0.1, render=False):
+        self.circuit.cicle_lights_state()
+        print(action[0])
         self.vehicle.change_gear(action[0])
         if action[1]:
             self.vehicle.brake(dt)
@@ -62,8 +80,17 @@ class Environment:
         done = self.progress >= 1 or self.vehicle.get_relative_hp() <= 0
         return image, state, reward, done
 
+    def get_dim(self):
+        state_img, state = self.get_state()
+        state_dim = len(state)
+        gear_dim, brake_dim, accel_dim, steer_dim = 5, 2, 2, 5
+        return state_dim, gear_dim, brake_dim, accel_dim, steer_dim
+
+    def get_img_size(self):
+        return 180, 180
+
     def get_reward(self):
-        reward = (self.progress - self.prev_progress) * 10 + self.vehicle.get_relative_hp()
+        reward = (self.progress - self.prev_progress) * 100 + self.vehicle.get_relative_hp()
         self.prev_progress = self.progress
         return reward
 
@@ -77,7 +104,7 @@ class Environment:
         # Vehicle
         state.append(self.vehicle.get_relative_hp())
         state.append(self.vehicle.get_weight())
-        state.append(self.vehicle.get_width())
+        state.append(self.vehicle.get_width()/self.circuit.get_width())
 
         state.append(self.vehicle.get_relative_gear())
 
@@ -106,4 +133,3 @@ class Environment:
         img = self.visual.take_circular_ss(tem_x - tem_scale * 4, tem_y - tem_scale * 4, tem_scale * 8, tem_scale * 8)
 
         return img, state
-

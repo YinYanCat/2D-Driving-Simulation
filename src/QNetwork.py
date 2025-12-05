@@ -8,9 +8,8 @@ def conv2d_size_out(size, kernel_size=1, stride=1, padding=0, dilation=1):
 
 
 class QNetwork(nn.Module):
-    def __init__(self, state_dim, action_dim, image_w, image_h):
+    def __init__(self, state_dim, gear_dim, brake_dim, accel_dim, steer_dim, image_w, image_h):
         super().__init__()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # CNN para imagen
         out1_cnn = 8
@@ -30,7 +29,13 @@ class QNetwork(nn.Module):
 
         # MLP final para cnn y estado
         self.fc1 = nn.Linear(self.cnn_output_dim + 128, 512)
-        self.out = nn.Linear(512, action_dim)
+
+        # Salidas por acción
+        self.gear_out = nn.Linear(512, gear_dim)
+        self.brake_out = nn.Linear(512, brake_dim)
+        self.accel_out = nn.Linear(512, accel_dim)
+        self.steer_out = nn.Linear(512, steer_dim)
+
 
     def forward(self, img, state):
 
@@ -47,6 +52,10 @@ class QNetwork(nn.Module):
         combined = torch.cat([x, s], dim=1)
 
         h = F.relu(self.fc1(combined))
-        q_values = self.out(h)
 
-        return q_values
+        gear_q = self.gear_out(h)
+        brake_q = self.brake_out(h)
+        accel_q = self.accel_out(h)
+        steer_q = self.steer_out(h)
+
+        return gear_q, brake_q, accel_q, steer_q

@@ -1,5 +1,6 @@
 from src.Circuit import Circuit
 import pygame
+import numpy as np
 
 from src.Vehicle import Vehicle
 
@@ -38,7 +39,7 @@ class Visual:
         self.vehicles.append(vehicle)
 
     def start(self):
-        self.screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
+        self.screen = pygame.display.set_mode((800, 600))#, pygame.RESIZABLE)
 
     def get_subsurface(self, x, y, width, height):
         new_x, new_y = x, y
@@ -84,9 +85,12 @@ class Visual:
         temp.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
         circular_ss.blit(temp,(0,0))
+        arr = pygame.surfarray.array3d(circular_ss)
+        arr = np.transpose(arr, (2, 1, 0))
+        arr = arr.astype(np.float32) / 255.0
 
         #pygame.image.save(circular_ss, "screenshot_partial.png")
-        return circular_ss
+        return arr
 
     def update(self):
         pass

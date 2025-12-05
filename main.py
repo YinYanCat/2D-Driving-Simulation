@@ -1,6 +1,8 @@
 from src.Circuit import Circuit
 from src.Vehicle import Vehicle
 from src.Visuals import Visual
+from src.Environment import Environment
+from src.DeepSarsa import DeepSarsa
 from sympy import symbols
 from sympy.functions import *
 import numpy as np
@@ -83,36 +85,16 @@ def player_main():
 
 
 def main():
-    t = symbols("t")
-    circuit = Circuit(x_func=t, y_func=sin(t), var_symbol=t, variable_start=-10, variable_finish=10)
-    vehicle = Vehicle(gear_ratios=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500, max_force=100)
+    env = Environment()
+    env.reset()
+    learning_rate = 0.001
+    discount_factor = 0.99
 
-    visual = Visual()
-    visual.add_vehicle(vehicle)
-    visual.set_circuit(circuit)
-    x,y = circuit.get_start()
-    print(x,y)
-    vehicle.set_pos(x,y)
-    vehicle.set_heading(circuit.angle_at_start())
-    pygame.init()
+    # Crear agente
+    agent = DeepSarsa(learning_rate, discount_factor, env)
 
-    clock = pygame.time.Clock()
-    running = True
+    agent.train(10, 50000, render=True, verbose=False)
 
-    while running:
-        dt = clock.tick(60) / 1000  # segundos por frame
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.VIDEORESIZE:
-                width, height = event.w, event.h
-                visual.fit_screen(width, height)
-
-        perform_action(circuit, vehicle, [1,1,0,0], dt)
-
-        vehicle.update(dt)
-        visual.draw()
 
 def perform_action(circuit, vehicle, actions, dt):
     vehicle.change_gear(actions[0])
@@ -136,7 +118,7 @@ def perform_action(circuit, vehicle, actions, dt):
 
 
 if __name__ == '__main__':
-    #main()
-    player_main()
+    main()
+    #player_main()
 
 
