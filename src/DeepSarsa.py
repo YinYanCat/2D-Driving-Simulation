@@ -1,3 +1,5 @@
+from tabnanny import check
+
 from src.QNetwork import QNetwork
 import numpy as np
 import torch
@@ -14,6 +16,7 @@ class DeepSarsa:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.qnet = QNetwork(state_dim,gear_dim, brake_dim, accel_dim, steer_dim,w,h).to(self.device)
+
         self.qnet_optim = torch.optim.Adam(self.qnet.parameters(),)
         self.mse_loss_function = nn.MSELoss()
 
@@ -92,11 +95,11 @@ class DeepSarsa:
         epsilon = 1
         for eps in range(n_episodes):
             state_img, state = self.env.reset()
-            action = self.epsilon_greedy_action(state_img, state)
+            action = self.epsilon_greedy_action(state_img, state, epsilon=epsilon)
 
             for step in range(n_steps):
                 next_state_img, next_state, reward, end = self.env.step(action, render=render)
-                next_action = self.epsilon_greedy_action(next_state_img,next_state)
+                next_action = self.epsilon_greedy_action(next_state_img,next_state, epsilon=epsilon)
 
                 self.update(state_img, state, next_state_img, next_state, action, next_action, reward, end)
 
@@ -114,3 +117,42 @@ class DeepSarsa:
 
             if epsilon <= 0.2:
                 epsilon = 0.2
+
+    def play(self, n_episodes=1, render=True, verbose=False):
+        self.qnet.eval()
+
+        for eps in range(n_episodes):
+            total_reward = 0
+            state_img, state = self.env.reset()
+            end = False
+
+            while not end:
+
+                action = self.epsilon_greedy_action(state_img, state, epsilon=0)
+                state_img, state, reward, end = self.env.step(action, render=render)
+
+                total_reward += reward
+
+                if end:
+                    break
+                if verbose:
+                    print(f"Reward {reward:.3f}, Progress {state[0]:.3f}, HP {state[1]:.3f}")
+            print(f"Recompensa total del episodio: {total_reward}")
+
+    def save(self, path="qnetwork.pth"):
+        torch.save(self.qnet.state_dict(), path)
+        print(f"Modelo guardado en {path}")
+
+    def load(self, path="qnetwork.pth"):
+        try:
+            checkpoint = torch.load(path, map_location=self.device)
+            self.qnet.load_state_dict(checkpoint)
+            self.qnet.eval()  # modo inferencia
+            print(f"Modelo cargado desde {path}")
+            return True
+        except FileNotFoundError:
+            print(f"No se a encontrado un modelo para cargar en {path}")
+            return False
+        except Exception as e:
+            print(f"Error al cargar el modelo: {e}")
+            return False

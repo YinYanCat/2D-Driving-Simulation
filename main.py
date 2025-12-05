@@ -85,6 +85,7 @@ def player_main():
 
 
 def main():
+    load = False
     env = Environment()
     env.reset()
     learning_rate = 0.001
@@ -93,28 +94,13 @@ def main():
     # Crear agente
     agent = DeepSarsa(learning_rate, discount_factor, env)
 
-    agent.train(10, 50000, render=True, verbose=False)
-
-
-def perform_action(circuit, vehicle, actions, dt):
-    vehicle.change_gear(actions[0])
-    if actions[1] == 0:
-        vehicle.brake(dt)
-    if actions[1] == 1:
-        vehicle.accelerate()
+    if load and agent.load():
+        agent.play(1, render=True, verbose=True)
     else:
-        vehicle.idle()
+        agent.train(100, 1000, render=True, verbose=True)
+        agent.save()
 
-    steer_angle = ((np.pi / 1.5)*actions[3]) * (0.5*actions[4])
-    vehicle.set_steer_angle(steer_angle * 0.5)
 
-    reward = 0
-    if vehicle.check_collision(circuit):
-        reward += -10
-        vehicle.idle()
-        vehicle.force_stop()
-        vehicle.damage_vehicle()
-        vehicle.bounce_out(circuit)
 
 
 if __name__ == '__main__':

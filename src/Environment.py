@@ -17,11 +17,13 @@ class Environment:
         self.vehicle = None
         self.circuit = None
 
+        max_steer_angle = np.pi/1.5
+        self.steer_angles = [-max_steer_angle, -0.5*max_steer_angle, 0, 0.5*max_steer_angle,max_steer_angle]
         self.action_space = {
             "gear_change": [0, 1, 2, 3, 4],
             "brake": [0, 1],
             "accel": [0, 1],
-            "steer": [-1, -0.5, 0, 0.5, 1]
+            "steer": [0, 1, 2, 3, 4]
         }
 
     def sample_action(self):
@@ -61,8 +63,7 @@ class Environment:
         else:
             self.vehicle.idle()
 
-        max_steer_angle = np.pi/1.5
-        self.vehicle.set_steer_angle(max_steer_angle*action[3])
+        self.vehicle.set_steer_angle(self.steer_angles[action[3]])
 
         self.vehicle.update(dt)
         if self.vehicle.check_collision(self.circuit):
@@ -75,7 +76,7 @@ class Environment:
             self.visual.draw()
 
         image, state = self.get_state()
-        reward = self.get_reward()
+        reward = self.get_reward(action)
         done = self.progress >= 1 or self.vehicle.get_relative_hp() <= 0
         return image, state, reward, done
 
@@ -88,8 +89,10 @@ class Environment:
     def get_img_size(self):
         return 180, 180
 
-    def get_reward(self):
-        reward = (self.progress - self.prev_progress) * 100 + self.vehicle.get_relative_hp()
+    def get_reward(self, action):
+        reward = (self.progress - self.prev_progress) * 100 \
+         - 5 * action[1] \
+         + self.vehicle.get_relative_hp()
         self.prev_progress = self.progress
         return reward
 
