@@ -53,7 +53,6 @@ class Environment:
 
     def step(self, action, dt=0.1, render=False):
         self.circuit.cicle_lights_state()
-        print(action[0])
         self.vehicle.change_gear(action[0])
         if action[1]:
             self.vehicle.brake(dt)
