@@ -5,7 +5,7 @@ from src.Circuit import Circuit
 
 
 class Vehicle:
-    def __init__(self, gear_ratio, weight=100, friction_coef=0.1, max_force=1, max_brake=1, max_velocity=100, max_hp=30, max_resources=100, steer_reposition=0.05, lateral_grip=8.0, width=0.3, start_x=0, start_y=0):
+    def __init__(self, gear_ratios, weight=100, friction_coef=0.1, max_force=1, max_brake=1, max_velocity=100, max_hp=30, steer_reposition=0.05, lateral_grip=8.0, width=0.3, start_x=0, start_y=0):
         self.scale = 1
         self.lateral_grip = lateral_grip
         self.steer_reposition = steer_reposition
@@ -14,13 +14,11 @@ class Vehicle:
         self.max_force = max_force
         self.max_brake = max_brake
         self.max_velocity = max_velocity
-        self.n_changes = len(gear_ratio)
-        self.gear_ratio = gear_ratio
+        self.n_gears = len(gear_ratios)
+        self.gear_ratios = gear_ratios
         self.max_hp = max_hp
-        self.max_resources = max_resources
 
         self.hp = max_hp
-        self.resources = max_resources
         self.steer_angle = 0
         self.gear_n = 0
 
@@ -51,7 +49,7 @@ class Vehicle:
         self.steer_angle = angle
 
     def change_gear(self, gear_n):
-        self.gear_n = max(0, min(self.n_changes - 1, gear_n))
+        self.gear_n = max(0, min(self.n_gears - 1, gear_n))
 
     def damage_vehicle(self):
         if self.hp >=1:
@@ -107,7 +105,7 @@ class Vehicle:
             self.current_y_force = 0
             return
 
-        ratio = self.gear_ratio[self.gear_n]
+        ratio = self.gear_ratios[self.gear_n]
         force = self.max_force * ratio
 
         dir_x = np.cos(self.heading)
@@ -188,8 +186,30 @@ class Vehicle:
 
         self.steer_angle *= self.steer_reposition**dt
 
+    # ESTADOS DE VEHICULO
     def get_pos(self):
         return self.x, self.y
+    def get_max_brake(self):
+        return self.max_brake
+    def get_relative_velocity(self):
+        return self.current_x_velocity/self.max_velocity, self.current_y_velocity/self.max_velocity
+    def get_heading(self):
+        return self.heading
+    def get_width(self):
+        return self.width
+    def get_weight(self):
+        return self.weight
+    def get_relative_force(self):
+        return self.current_x_force/self.max_force, self.current_y_force/self.max_force
+    def get_steering_angle(self):
+        return self.steer_angle
+    def get_relative_hp(self):
+        return self.hp/self.max_hp
+    def get_gear_ratios(self):
+        return self.gear_ratios
+    def get_relative_gear(self):
+        return self.gear_n/self.n_gears
+
 
     def draw(self, screen, circuit=None):
         if circuit:

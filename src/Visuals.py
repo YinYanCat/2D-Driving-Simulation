@@ -69,13 +69,23 @@ class Visual:
 
     def take_circular_ss(self, x, y, width, height):
         sub_surface = self.get_subsurface(x, y, width, height)
+
+        # Máscara circular
         mask = pygame.Surface((width, height), pygame.SRCALPHA)
         pygame.draw.circle(mask, (255, 255, 255), (width // 2, height // 2), min(width, height) // 2)
-        circular_ss = pygame.Surface((width, height), pygame.SRCALPHA)
-        circular_ss.blit(sub_surface, (0, 0))
-        circular_ss.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
-        pygame.image.save(circular_ss, "screenshot_partial.png")
+        # Fondo violeta
+        circular_ss = pygame.Surface((width, height))
+        circular_ss.fill((255, 0, 255))
+
+        # Aplicar Máscara
+        temp = pygame.Surface((width, height), pygame.SRCALPHA)
+        temp.blit(sub_surface, (0, 0))
+        temp.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+        circular_ss.blit(temp,(0,0))
+
+        #pygame.image.save(circular_ss, "screenshot_partial.png")
         return circular_ss
 
     def update(self):

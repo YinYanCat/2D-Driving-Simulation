@@ -50,6 +50,7 @@ class Circuit:
         self.x2 = None
         self.y2 = None
 
+        self.traffic_lights_cicle = 0
         self.traffic_lights = []
         self.traffic_lights_state = []
         self.crosswalks = []
@@ -218,16 +219,25 @@ class Circuit:
         return (self.world_to_screen(x1, y1)), (self.world_to_screen(x2, y2))
 
     def cicle_lights_state(self):
-        for i in range(len(self.traffic_lights_state)):
-            if self.traffic_lights_state[i] == (0,255,0):
-                self.traffic_lights_state[i] = (255,255,0)
-            elif self.traffic_lights_state[i] == (255,255,0):
-                self.traffic_lights_state[i] = (255,0,0)
-            else:
-                self.traffic_lights_state[i] = (0,255,0)
+        self.traffic_lights_cicle += 1
+        if self.traffic_lights_cicle == 20:
+            for i in range(len(self.traffic_lights_state)):
+                if self.traffic_lights_state[i] == (0, 255, 0):
+                    self.traffic_lights_state[i] = (255, 255, 0)
+                elif self.traffic_lights_state[i] == (255, 255, 0):
+                    self.traffic_lights_state[i] = (255, 0, 0)
+                else:
+                    self.traffic_lights_state[i] = (0, 255, 0)
+            self.traffic_lights_cicle = 0
+
 
     def get_scale(self):
         return self.scale
+
+    def get_progress(self, px, py):
+        t, x, y = self.nearest_curve_point(px, py)
+        progress = (t-self.variable_start)/(self.variable_finish-self.variable_start)
+        return np.clip(progress, 0.0, 1.0)
 
     def draw(self, screen:pygame.surface):
         #Cicuit

@@ -10,7 +10,7 @@ import pygame
 def player_main():
     t = symbols("t")
     circuit = Circuit(x_func=t, y_func=sin(t), var_symbol=t, variable_start=-10, variable_finish=10)
-    vehicle = Vehicle(gear_ratio=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500, max_force=100)
+    vehicle = Vehicle(gear_ratios=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500, max_force=100)
 
     visual = Visual()
     visual.add_vehicle(vehicle)
@@ -24,15 +24,10 @@ def player_main():
     clock = pygame.time.Clock()
     running = True
 
-    traffic_lights_cicle = 0
-
     while running:
         dt = clock.tick(60) / 1000  # segundos por frame
 
-        traffic_lights_cicle+=1
-        if traffic_lights_cicle == 20:
-            circuit.cicle_lights_state()
-            traffic_lights_cicle = 0
+        circuit.cicle_lights_state()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -54,6 +49,10 @@ def player_main():
             vehicle.change_gear(4)
         if keys[pygame.K_SPACE]:
             vehicle.brake(dt)
+        elif keys[pygame.K_LSHIFT]:
+            vehicle.accelerate()
+        else:
+            vehicle.idle()
 
         if keys[pygame.K_p]:
             tem_x, tem_y = vehicle.get_pos()
@@ -61,10 +60,6 @@ def player_main():
             tem_scale = circuit.get_scale()*0.6
             visual.take_circular_ss(tem_x-tem_scale*4, tem_y-tem_scale*4, tem_scale*8, tem_scale*8)
 
-        elif keys[pygame.K_LSHIFT]:
-            vehicle.accelerate()
-        else:
-            vehicle.idle()
         if keys[pygame.K_a]:
             steer_angle = np.pi/1.5
             if keys[pygame.K_w]:
@@ -90,7 +85,7 @@ def player_main():
 def main():
     t = symbols("t")
     circuit = Circuit(x_func=t, y_func=sin(t), var_symbol=t, variable_start=-10, variable_finish=10)
-    vehicle = Vehicle(gear_ratio=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500, max_force=100)
+    vehicle = Vehicle(gear_ratios=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500, max_force=100)
 
     visual = Visual()
     visual.add_vehicle(vehicle)
