@@ -20,7 +20,7 @@ def player_main():
     x,y = circuit.get_start()
     #print(x,y)
     vehicle.set_pos(x,y)
-    vehicle.set_heading(circuit.angle_at_start())
+    vehicle.set_heading(circuit.get_angle_start())
     pygame.init()
 
     clock = pygame.time.Clock()
@@ -75,11 +75,8 @@ def player_main():
             vehicle.set_steer_angle(steer_angle*0.5)
 
         vehicle.update(dt)
-        if vehicle.check_collision(circuit):
-            vehicle.idle()
-            vehicle.force_stop()
-            vehicle.damage_vehicle()
-            vehicle.bounce_out(circuit)
+        vehicle.check_collision(circuit)
+        vehicle.check_outside(circuit)
 
         visual.draw()
 
@@ -101,10 +98,6 @@ def main():
         agent.save()
 
 
-
-
 if __name__ == '__main__':
     main()
     #player_main()
-
-

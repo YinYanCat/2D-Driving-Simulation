@@ -63,8 +63,6 @@ class Circuit:
         self.width = 1
         self.height = 1
 
-
-
     def calculate_draw_points(self, delta_s=0.05):
         t_temp = np.linspace(self.variable_start, self.variable_finish, 5000)
         x_temp = np.array([float(self.function[0].subs(self.var, t)) for t in t_temp])
@@ -99,13 +97,6 @@ class Circuit:
             self.traffic_lights_state.append((0,255,0))
         self.save_random_points(self.crosswalks, 6, self.traffic_lights)
 
-    def get_width(self):
-        return self.circuit_width
-
-    def get_start(self):
-        x0, y0 = float(self.function[0].subs(self.var,self.variable_start)), float(self.function[1].subs(self.var,self.variable_start))
-        return x0, y0
-
     def save_random_points(self, points_list, inter, block_list=None):
         start = self.ts[0]
         end = self.ts[len(self.ts)-1]
@@ -125,11 +116,7 @@ class Circuit:
                 point = random.uniform(min_t, max_t)
             points_list.append(point)
 
-    def angle_at_start(self):
-        return self.angle_of_curve(self.variable_start)
-
     def fit(self, width, height):
-
         self.width = width
         self.height = height
 
@@ -139,7 +126,6 @@ class Circuit:
 
         self.x_min = xs.min()
         self.y_min = ys.min()
-
         range_x = xs.max() - xs.min()
         range_y = ys.max() - ys.min()
 
@@ -153,7 +139,6 @@ class Circuit:
 
         Retorna: (t_min, x(t_min), y(t_min)).
         """
-
         ts = self.ts
         xs = self._Cx(ts)
         ys = self._Cy(ts)
@@ -161,7 +146,6 @@ class Circuit:
         d2 = (xs - px) ** 2 + (ys - py) ** 2
         t_curr = self.ts[np.argmin(d2)]
 
-        # --------------- 2. NEWTON PARA REFINAR ----------------
         for i in range(newton_steps):
             Cx = self._Cx(t_curr)
             Cy = self._Cy(t_curr)
@@ -191,7 +175,6 @@ class Circuit:
 
             t_curr = t_new
 
-        # Resultado final
         return t_curr, float(self._Cx(t_curr)), float(self._Cy(t_curr))
 
     def angle_of_curve(self, t):
@@ -230,15 +213,26 @@ class Circuit:
                     self.traffic_lights_state[i] = (0, 255, 0)
             self.traffic_lights_cicle = 0
 
-
+    # GETTERS
+    # -----------
+    def get_width(self):
+        return self.circuit_width
+    def get_start(self):
+        return float(self.function[0].subs(self.var,self.variable_start)), float(self.function[1].subs(self.var,self.variable_start))
+    def get_finish(self):
+        return float(self.function[0].subs(self.var,self.variable_finish)), float(self.function[1].subs(self.var,self.variable_finish))
+    def get_angle_start(self):
+        return self.angle_of_curve(self.variable_start)
     def get_scale(self):
         return self.scale
-
     def get_progress(self, px, py):
         t, x, y = self.nearest_curve_point(px, py)
         progress = (t-self.variable_start)/(self.variable_finish-self.variable_start)
         return np.clip(progress, 0.0, 1.0)
+    # -----------
 
+    # VISUAL
+    # -----------
     def draw(self, screen:pygame.surface):
         #Cicuit
         pts_offset1 = [self.world_to_screen(x, y) for x, y in zip(self.x1, self.y1)]
@@ -258,3 +252,4 @@ class Circuit:
 
         for i in range(len(self.traffic_lights)):
             pygame.draw.circle(screen, self.traffic_lights_state[i], self.point_coords(self.traffic_lights[i])[1], self.circuit_width*self.scale/4)
+    # -----------

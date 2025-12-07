@@ -35,18 +35,18 @@ class Vehicle:
         self.x = start_x
         self.y = start_y
 
+    # SETTERS
+    # -----------
     def set_pos(self, x, y):
         self.x = x
         self.y = y
-
     def set_scale(self, scale):
         self.scale = scale
-
     def set_heading(self, angle):
         self.heading = angle
-
-    def set_steering(self, angle):
-        self.steer_angle = angle
+    def set_steer_angle(self, steer_angle):
+        self.steer_angle = steer_angle
+    # -----------
 
     def change_gear(self, gear_n):
         self.gear_n = max(0, min(self.n_gears - 1, gear_n))
@@ -170,10 +170,29 @@ class Vehicle:
         u2_shrink = v_dist2_shrink / np.linalg.norm(v_dist2_shrink)
 
         dot = np.dot(u1_shrink, u2_shrink)
-        return dot > 1 - 1e-6
 
-    def set_steer_angle(self, steer_angle):
-        self.steer_angle = steer_angle
+        if dot > 1 - 1e-6:
+            self.idle()
+            self.force_stop()
+            self.damage_vehicle()
+            self.bounce_out(circuit)
+            return True
+        return False
+
+    def check_outside(self, circuit:Circuit):
+        t, x, y = circuit.nearest_curve_point(self.x, self.y)
+        x0, y0 = circuit.get_start()
+        xf, yf = circuit.get_finish()
+
+        if x == x0 and y == y0:
+            self.idle()
+            self.force_stop()
+            self.set_pos(x0, y0)
+            self.set_heading(circuit.get_angle_start())
+        elif x == xf and y == yf:
+            self.idle()
+            self.force_stop()
+            self.set_pos(xf, yf)
 
     def update(self, dt, circuit=None):
         self.calculate_speed(dt)
@@ -186,7 +205,8 @@ class Vehicle:
 
         self.steer_angle *= self.steer_reposition**dt
 
-    # ESTADOS DE VEHICULO
+    # GETTERS
+    # -----------
     def get_pos(self):
         return self.x, self.y
     def get_max_brake(self):
@@ -209,10 +229,13 @@ class Vehicle:
         return self.gear_ratios
     def get_relative_gear(self):
         return self.gear_n/self.n_gears
+    # -----------
 
-
+    # VISUAL
+    # -----------
     def draw(self, screen, circuit=None):
         if circuit:
             pygame.draw.circle(screen, (0, 0, 255), circuit.world_to_screen(self.x, self.y), 0.3 * self.scale)
         else:
             pygame.draw.circle(screen, (0,0,255),(self.x, self.y),self.width*self.scale)
+    #-----------

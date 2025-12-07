@@ -43,7 +43,7 @@ class Environment:
                                max_force=100)
         x, y = self.circuit.get_start()
         self.vehicle.set_pos(x, y)
-        self.vehicle.set_heading(self.circuit.angle_at_start())
+        self.vehicle.set_heading(self.circuit.get_angle_start())
 
         self.visual = Visual()
         self.visual.add_vehicle(self.vehicle)
@@ -52,33 +52,6 @@ class Environment:
         image, state = self.get_state()
 
         return image, state
-
-    def step(self, action, dt=0.1, render=False):
-        self.circuit.cicle_lights_state()
-        self.vehicle.change_gear(action[0])
-        if action[1]:
-            self.vehicle.brake(dt)
-        elif action[2]:
-            self.vehicle.accelerate()
-        else:
-            self.vehicle.idle()
-
-        self.vehicle.set_steer_angle(self.steer_angles[action[3]])
-
-        self.vehicle.update(dt)
-        if self.vehicle.check_collision(self.circuit):
-            self.vehicle.idle()
-            self.vehicle.force_stop()
-            self.vehicle.damage_vehicle()
-            self.vehicle.bounce_out(self.circuit)
-
-        if render:
-            self.visual.draw()
-
-        image, state = self.get_state()
-        reward = self.get_reward(action)
-        done = self.progress >= 1 or self.vehicle.get_relative_hp() <= 0
-        return image, state, reward, done
 
     def get_dim(self):
         state_img, state = self.get_state()
@@ -89,10 +62,12 @@ class Environment:
     def get_img_size(self):
         return 180, 180
 
-    def get_reward(self, action):
+    def get_reward_progress(self, action):
         reward = (self.progress - self.prev_progress) * 100 \
          - 5 * action[1] \
          + self.vehicle.get_relative_hp()
+        if self.progress <= self.prev_progress:
+            reward -= 10
         self.prev_progress = self.progress
         return reward
 
@@ -135,3 +110,31 @@ class Environment:
         img = self.visual.take_circular_ss(tem_x - tem_scale * 4, tem_y - tem_scale * 4, tem_scale * 8, tem_scale * 8)
 
         return img, state
+
+    def step(self, action, dt=0.1, render=False):
+        reward = 0
+        self.circuit.cicle_lights_state()
+        self.vehicle.change_gear(action[0])
+        if action[1]:
+            self.vehicle.brake(dt)
+        elif action[2]:
+            self.vehicle.accelerate()
+        else:
+            self.vehicle.idle()
+
+        self.vehicle.set_steer_angle(self.steer_angles[action[3]])
+
+        self.vehicle.update(dt)
+        self.vehicle.check_outside(self.circuit)
+
+        if self.vehicle.check_collision(self.circuit):
+            reward =-10
+
+        if render:
+            self.visual.draw()
+
+        image, state = self.get_state()
+        reward += self.get_reward_progress(action)
+        done = self.progress >= 1 or self.vehicle.get_relative_hp() <= 0
+
+        return image, state, reward, done
