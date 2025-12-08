@@ -7,9 +7,10 @@ from src.Vehicle import Vehicle
 
 class Visual:
 
-    def __init__(self):
+    def __init__(self, render=True):
         pygame.init()
         pygame.display.set_caption("Driving Simulation 2D")
+        self.render = render
         info = pygame.display.Info()
         self.screen_width, self.screen_height = info.current_w, info.current_h
         self.circuit = None
@@ -39,7 +40,10 @@ class Visual:
         self.vehicles.append(vehicle)
 
     def start(self):
-        self.screen = pygame.display.set_mode((800, 600))#, pygame.RESIZABLE)
+        if self.render:
+            self.screen = pygame.display.set_mode((800, 600))#, pygame.RESIZABLE)
+        else:
+            self.screen = pygame.Surface((800, 600))
 
     def get_subsurface(self, x, y, width, height):
         new_x, new_y = x, y
@@ -103,4 +107,5 @@ class Visual:
         self.circuit.draw(self.screen)
         for v in self.vehicles:
             v.draw(self.screen,self.circuit)
-        pygame.display.flip()
+        if self.render:
+            pygame.display.flip()

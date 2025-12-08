@@ -91,14 +91,16 @@ class DeepSarsa:
         loss.backward()
         self.qnet_optim.step()
 
-    def train(self, n_episodes, n_steps, render=False, verbose=False):
+    def train(self, n_episodes, n_steps, render=False, verbose=0):
         epsilon = 1
         for eps in range(n_episodes):
             state_img, state = self.env.reset()
             action = self.epsilon_greedy_action(state_img, state, epsilon=epsilon)
 
+            if verbose == 1:
+                print(f"Episodio de prueba {eps} iniciado")
             for step in range(n_steps):
-                next_state_img, next_state, reward, end = self.env.step(action, render=render)
+                next_state_img, next_state, reward, end = self.env.step(action)
                 next_action = self.epsilon_greedy_action(next_state_img,next_state, epsilon=epsilon)
 
                 self.update(state_img, state, next_state_img, next_state, action, next_action, reward, end)
@@ -107,10 +109,11 @@ class DeepSarsa:
 
                 if end:
                     break
-                if verbose:
-                    print(f"Step {step}: Reward {reward:.3f}, Progress {state[0]:.3f}, HP {state[1]:.3f}")
-            if verbose:
-                print("Episodio de prueba terminado")
+                if verbose >= 2:
+                    print(f"Episode {eps} Step {step}: Reward {reward:.3f}, Progress {state[0]:.3f}, HP {state[1]:.3f}")
+
+            if verbose == 1:
+                print(f"Episodio de prueba {eps} terminado")
 
             if epsilon > 0.2:
                 epsilon *= 0.995
@@ -118,7 +121,7 @@ class DeepSarsa:
             if epsilon <= 0.2:
                 epsilon = 0.2
 
-    def play(self, n_episodes=1, render=True, verbose=False):
+    def play(self, n_episodes=1, verbose=False):
         self.qnet.eval()
 
         for eps in range(n_episodes):
@@ -129,7 +132,7 @@ class DeepSarsa:
             while not end:
 
                 action = self.epsilon_greedy_action(state_img, state, epsilon=0)
-                state_img, state, reward, end = self.env.step(action, render=render)
+                state_img, state, reward, end = self.env.step(action)
 
                 total_reward += reward
 

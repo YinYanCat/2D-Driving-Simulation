@@ -10,9 +10,10 @@ import numpy as np
 
 class Environment:
 
-    def __init__(self):
+    def __init__(self, render=True):
         self.progress = 0
         self.prev_progress = 0
+        self.render = render
         self.visual = None
         self.vehicle = None
         self.circuit = None
@@ -45,7 +46,7 @@ class Environment:
         self.vehicle.set_pos(x, y)
         self.vehicle.set_heading(self.circuit.get_angle_start())
 
-        self.visual = Visual()
+        self.visual = Visual(render=self.render)
         self.visual.add_vehicle(self.vehicle)
         self.visual.set_circuit(self.circuit)
 
@@ -63,10 +64,22 @@ class Environment:
         return 180, 180
 
     def get_reward_progress(self, action):
-        reward = (self.progress - self.prev_progress) * 100 \
-         - 5 * action[1] \
+        gear = self.vehicle.get_gear_ratios()[action[0]]
+        if gear == 0:
+            gear_penalty = 1
+        else:
+            gear_penalty = 0
+        if action[1] and action[2]:
+            break_accel_penalty = 1
+        else:
+            break_accel_penalty = 0
+
+        reward = (self.progress - self.prev_progress) * 10 \
+         - 5 * gear_penalty \
+         - 10 * break_accel_penalty \
          + self.vehicle.get_relative_hp()
-        if self.progress <= self.prev_progress:
+
+        if self.progress <= self.prev_progress - 0.05:
             reward -= 10
         self.prev_progress = self.progress
         return reward
@@ -107,11 +120,13 @@ class Environment:
         tem_x, tem_y = self.vehicle.get_pos()
         tem_x, tem_y = self.circuit.world_to_screen(tem_x, tem_y)
         tem_scale = self.circuit.get_scale() * 0.6
+
+        self.visual.draw()
         img = self.visual.take_circular_ss(tem_x - tem_scale * 4, tem_y - tem_scale * 4, tem_scale * 8, tem_scale * 8)
 
         return img, state
 
-    def step(self, action, dt=0.1, render=False):
+    def step(self, action, dt=0.1):
         reward = 0
         self.circuit.cicle_lights_state()
         self.vehicle.change_gear(action[0])
@@ -129,9 +144,6 @@ class Environment:
 
         if self.vehicle.check_collision(self.circuit):
             reward =-10
-
-        if render:
-            self.visual.draw()
 
         image, state = self.get_state()
         reward += self.get_reward_progress(action)

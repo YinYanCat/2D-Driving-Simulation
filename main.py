@@ -14,7 +14,7 @@ def player_main():
     circuit = Circuit(x_func=t, y_func=sin(t), var_symbol=t, variable_start=-10, variable_finish=10)
     vehicle = Vehicle(gear_ratios=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500, max_force=100)
 
-    visual = Visual()
+    visual = Visual(render=False)
     visual.add_vehicle(vehicle)
     visual.set_circuit(circuit)
     x,y = circuit.get_start()
@@ -83,7 +83,7 @@ def player_main():
 
 def main():
     load = False
-    env = Environment()
+    env = Environment(render=False)
     env.reset()
     learning_rate = 0.001
     discount_factor = 0.99
@@ -92,9 +92,9 @@ def main():
     agent = DeepSarsa(learning_rate, discount_factor, env)
 
     if load and agent.load():
-        agent.play(1, render=True, verbose=True)
+        agent.play(1, verbose=1)
     else:
-        agent.train(100, 1000, render=True, verbose=True)
+        agent.train(100, 1000, verbose=1)
         agent.save()
 
 
