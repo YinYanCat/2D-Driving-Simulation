@@ -6,6 +6,7 @@ from src.Visuals import Visual
 from sympy import symbols
 from sympy.functions import *
 import numpy as np
+import itertools
 
 
 class Environment:
@@ -27,13 +28,21 @@ class Environment:
             "steer": [0, 1, 2, 3, 4]
         }
 
+        self.action_table = list(itertools.product(self.action_space["gear_change"],
+                                                    self.action_space["brake"],
+                                                    self.action_space["accel"],
+                                                    self.action_space["steer"]))
+
+        self.n_actions = len(self.action_table)
+
     def sample_action(self):
-        return [
-            random.choice(self.action_space["gear_change"]),
-            random.choice(self.action_space["brake"]),
-            random.choice(self.action_space["accel"]),
-            random.choice(self.action_space["steer"])
-        ]
+        idx = random.randint(0,self.n_actions)
+        action = self.action_table[idx]
+
+        return idx, action
+
+    def get_action(self, idx):
+        return self.action_table[idx]
 
     def reset(self):
         self.progress = 0
@@ -57,8 +66,8 @@ class Environment:
     def get_dim(self):
         state_img, state = self.get_state()
         state_dim = len(state)
-        gear_dim, brake_dim, accel_dim, steer_dim = 5, 2, 2, 5
-        return state_dim, gear_dim, brake_dim, accel_dim, steer_dim
+        action_dim = self.n_actions
+        return state_dim, action_dim
 
     def get_img_size(self):
         return 180, 180

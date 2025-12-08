@@ -8,7 +8,7 @@ def conv2d_size_out(size, kernel_size=1, stride=1, padding=0, dilation=1):
 
 
 class QNetwork(nn.Module):
-    def __init__(self, state_dim, gear_dim, brake_dim, accel_dim, steer_dim, image_w, image_h):
+    def __init__(self, state_dim, action_dim, image_w, image_h):
         super().__init__()
 
         # CNN para imagen
@@ -32,10 +32,7 @@ class QNetwork(nn.Module):
         self.fc2 = nn.Linear(4096, 4096)
 
         # Salidas por acción
-        self.gear_out = nn.Linear(4096, gear_dim)
-        self.brake_out = nn.Linear(4096, brake_dim)
-        self.accel_out = nn.Linear(4096, accel_dim)
-        self.steer_out = nn.Linear(4096, steer_dim)
+        self.action_out = nn.Linear(4096, action_dim)
 
 
     def forward(self, img, state):
@@ -56,9 +53,6 @@ class QNetwork(nn.Module):
         h = F.relu(self.fc1(combined))
         h = F.relu(self.fc2(h))
 
-        gear_q = self.gear_out(h)
-        brake_q = self.brake_out(h)
-        accel_q = self.accel_out(h)
-        steer_q = self.steer_out(h)
+        action_q = self.action_out(h)
 
-        return gear_q, brake_q, accel_q, steer_q
+        return action_q
