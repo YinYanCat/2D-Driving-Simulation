@@ -65,7 +65,9 @@ class DeepSarsa:
         self.qnet_optim.step()
 
     def train(self, n_episodes, n_steps, verbose=0):
-        total_time = 0
+        start_time = time.time()
+        dts = []
+        n_dts = 5
         epsilon = 1
         for eps in range(n_episodes):
             st = time.time()
@@ -89,17 +91,19 @@ class DeepSarsa:
 
             et = time.time()
             dt = et - st
-            total_time += dt
+            dts.append(dt)
+            if len(dts) > n_dts:
+                dts.pop(0)
+            avg_dt = sum(dts) / len(dts)
+            remaining_time = ((n_episodes-eps-1)*avg_dt)/60
+
             if verbose == 1:
                 print(f"Episodio de prueba {eps} terminado")
-                print(f"tiempo restante: {((n_episodes-eps-1)*total_time/(eps+1))/60:.0f} minutos")
+                print(f"Tiempo restante: {remaining_time:.0f} minutos")
 
-            if epsilon > 0.2:
-                epsilon *= 0.995
-
-            if epsilon <= 0.2:
-                epsilon = 0.2
-
+            epsilon = max(0.2, epsilon * 0.995)
+        end_time = time.time()
+        print(f" Tiempo de ejecución: {(end_time-start_time)/60:.0f} minutos")
 
     def play(self, n_episodes=1, verbose=0):
 
