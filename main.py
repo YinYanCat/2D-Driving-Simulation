@@ -92,9 +92,9 @@ def main():
     agent = DeepSarsa(learning_rate, discount_factor, env)
 
     if load and agent.load():
-        agent.play(1, verbose=1)
+        agent.play(1, verbose=0)
     else:
-        agent.train(100, 1000, verbose=1)
+        agent.train(600, 2000, verbose=1)
         agent.save()
 
 

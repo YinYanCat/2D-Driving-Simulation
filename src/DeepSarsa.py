@@ -4,6 +4,7 @@ from src.QNetwork import QNetwork
 import numpy as np
 import torch
 import torch.nn as nn
+import time
 
 class DeepSarsa:
     def __init__(self, learning_rate, discount_factor, environment):
@@ -64,8 +65,10 @@ class DeepSarsa:
         self.qnet_optim.step()
 
     def train(self, n_episodes, n_steps, verbose=0):
+        total_time = 0
         epsilon = 1
         for eps in range(n_episodes):
+            st = time.time()
             state_img, state = self.env.reset()
             action_idx, action = self.epsilon_greedy_action(state_img, state, epsilon=epsilon)
 
@@ -84,8 +87,12 @@ class DeepSarsa:
                 if verbose >= 2:
                     print(f"Episode {eps} Step {step}: Reward {reward:.3f}, Progress {state[0]:.3f}, HP {state[1]:.3f}")
 
+            et = time.time()
+            dt = et - st
+            total_time += dt
             if verbose == 1:
                 print(f"Episodio de prueba {eps} terminado")
+                print(f"tiempo restante: {((n_episodes-eps-1)*total_time/(eps+1))/60:.0f} minutos")
 
             if epsilon > 0.2:
                 epsilon *= 0.995
@@ -93,8 +100,8 @@ class DeepSarsa:
             if epsilon <= 0.2:
                 epsilon = 0.2
 
-    def play(self, n_episodes=1, verbose=False):
-        self.qnet.eval()
+
+    def play(self, n_episodes=1, verbose=0):
 
         for eps in range(n_episodes):
             total_reward = 0
@@ -103,14 +110,15 @@ class DeepSarsa:
 
             while not end:
 
-                action = self.epsilon_greedy_action(state_img, state, epsilon=0)
+                action_idx, action = self.epsilon_greedy_action(state_img, state, epsilon=0.05)
+                print(action)
                 state_img, state, reward, end = self.env.step(action)
 
                 total_reward += reward
 
                 if end:
                     break
-                if verbose:
+                if verbose == 1:
                     print(f"Reward {reward:.3f}, Progress {state[0]:.3f}, HP {state[1]:.3f}")
             print(f"Recompensa total del episodio: {total_reward}")
 
@@ -122,7 +130,6 @@ class DeepSarsa:
         try:
             checkpoint = torch.load(path, map_location=self.device)
             self.qnet.load_state_dict(checkpoint)
-            self.qnet.eval()  # modo inferencia
             print(f"Modelo cargado desde {path}")
             return True
         except FileNotFoundError:

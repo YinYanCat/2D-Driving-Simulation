@@ -12,6 +12,8 @@ import itertools
 class Environment:
 
     def __init__(self, render=True):
+        self.start_y = None
+        self.start_x = None
         self.progress = 0
         self.prev_progress = 0
         self.render = render
@@ -52,6 +54,7 @@ class Environment:
         self.vehicle = Vehicle(gear_ratios=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500,
                                max_force=100)
         x, y = self.circuit.get_start()
+        self.start_x, self.start_y = x, y
         self.vehicle.set_pos(x, y)
         self.vehicle.set_heading(self.circuit.get_angle_start())
 
@@ -78,17 +81,24 @@ class Environment:
             gear_penalty = 1
         else:
             gear_penalty = 0
-        if action[1] and action[2]:
+        if action[1] == action[2]:
             break_accel_penalty = 1
         else:
             break_accel_penalty = 0
 
+        x, y = self.vehicle.get_pos()
+        if self.start_x == x and self.start_y == y:
+            start_penalty = 1
+        else:
+            start_penalty = 0
+
         reward = (self.progress - self.prev_progress) * 10 \
          - 5 * gear_penalty \
          - 10 * break_accel_penalty \
+         - 10 * start_penalty\
          + self.vehicle.get_relative_hp()
 
-        if self.progress <= self.prev_progress - 0.05:
+        if self.progress <= self.prev_progress:
             reward -= 10
         self.prev_progress = self.progress
         return reward
