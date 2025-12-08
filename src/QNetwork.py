@@ -15,26 +15,27 @@ class QNetwork(nn.Module):
         out1_cnn = 8
         out2_cnn = 16
         out3_cnn = 32
-        self.conv1 = nn.Conv2d(3, out1_cnn,kernel_size=4, stride=2, dilation=1, padding=0)
-        self.conv2 = nn.Conv2d(out1_cnn, out2_cnn,kernel_size=2, stride=2, dilation=1, padding=0)
-        self.conv3 = nn.Conv2d(out2_cnn, out3_cnn,kernel_size=1, stride=1, dilation=1, padding=0)
+        self.conv1 = nn.Conv2d(3, out1_cnn,kernel_size=8, stride=4, dilation=1, padding=0)
+        self.conv2 = nn.Conv2d(out1_cnn, out2_cnn,kernel_size=4, stride=2, dilation=1, padding=0)
+        self.conv3 = nn.Conv2d(out2_cnn, out3_cnn,kernel_size=3, stride=1, dilation=1, padding=0)
 
-        w_out = conv2d_size_out(conv2d_size_out(conv2d_size_out(image_w, 4, 2), 2, 2), 1, 1)
-        h_out = conv2d_size_out(conv2d_size_out(conv2d_size_out(image_h, 4, 2), 2, 2), 1, 1)
-        self.cnn_output_dim = out3_cnn * w_out * h_out
+        #w_out = conv2d_size_out(conv2d_size_out(conv2d_size_out(image_w, 8, 4), 4, 2), 3, 1)
+        #h_out = conv2d_size_out(conv2d_size_out(conv2d_size_out(image_h, 8, 4), 4, 2), 3, 1)
+        self.cnn_output_dim = out3_cnn * 8 * 8
 
         #  Multilayer Perceptron para inputs continuos
-        self.fc_state1 = nn.Linear(state_dim, 128)
-        self.fc_state2 = nn.Linear(128,128)
+        self.fc_state1 = nn.Linear(state_dim, 1024)
+        self.fc_state2 = nn.Linear(1024,2048)
 
         # MLP final para cnn y estado
-        self.fc1 = nn.Linear(self.cnn_output_dim + 128, 512)
+        self.fc1 = nn.Linear(self.cnn_output_dim + 2048, 4096)
+        self.fc2 = nn.Linear(4096, 4096)
 
         # Salidas por acción
-        self.gear_out = nn.Linear(512, gear_dim)
-        self.brake_out = nn.Linear(512, brake_dim)
-        self.accel_out = nn.Linear(512, accel_dim)
-        self.steer_out = nn.Linear(512, steer_dim)
+        self.gear_out = nn.Linear(4096, gear_dim)
+        self.brake_out = nn.Linear(4096, brake_dim)
+        self.accel_out = nn.Linear(4096, accel_dim)
+        self.steer_out = nn.Linear(4096, steer_dim)
 
 
     def forward(self, img, state):
@@ -43,6 +44,7 @@ class QNetwork(nn.Module):
         x = F.relu(self.conv1(img))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
+        x = F.adaptive_avg_pool2d(x, (8, 8))
         x = x.view(x.size(0), -1)
 
         # variables continuas
@@ -52,6 +54,7 @@ class QNetwork(nn.Module):
         combined = torch.cat([x, s], dim=1)
 
         h = F.relu(self.fc1(combined))
+        h = F.relu(self.fc2(h))
 
         gear_q = self.gear_out(h)
         brake_q = self.brake_out(h)

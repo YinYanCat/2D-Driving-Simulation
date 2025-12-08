@@ -234,8 +234,20 @@ class Vehicle:
     # VISUAL
     # -----------
     def draw(self, screen, circuit=None):
+
         if circuit:
-            pygame.draw.circle(screen, (0, 0, 255), circuit.world_to_screen(self.x, self.y), 0.3 * self.scale)
+            center_x, center_y = circuit.world_to_screen(self.x, self.y)
+            line_length = self.width*self.scale
+            end_x, end_y = center_x + line_length * np.cos(-self.heading-self.steer_angle), center_y + line_length * np.sin(-self.heading-self.steer_angle)
+
+            pygame.draw.circle(screen, (0, 0, 255), (center_x, center_y), self.width * self.scale)
+            pygame.draw.line(screen, (255, 0, 0), (center_x, center_y), (end_x, end_y), int(0.1*self.scale))
         else:
+            center_x, center_y = self.x, self.y
+            line_length = self.width * self.scale
+            end_x, end_y = center_x + line_length * np.cos(-self.heading-self.steer_angle), center_y + line_length * np.sin(-self.heading-self.steer_angle)
+
             pygame.draw.circle(screen, (0,0,255),(self.x, self.y),self.width*self.scale)
+            pygame.draw.line(screen, (255, 0, 0), (center_x, center_y), (end_x, end_y), int(0.1*self.scale))
+
     #-----------
