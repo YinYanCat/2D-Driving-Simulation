@@ -1,4 +1,5 @@
 from numpy import random
+from sympy.physics.units import velocity
 
 from src.Circuit import Circuit
 from src.Vehicle import Vehicle
@@ -76,6 +77,12 @@ class Environment:
         return 180, 180
 
     def get_reward_progress(self, action):
+        vx, vy = self.vehicle.get_relative_velocity()
+        v = np.hypot(vx, vy)
+        if v > 0:
+            velocity_reward = 1
+        else:
+            velocity_reward = 0
         gear = self.vehicle.get_gear_ratios()[action[0]]
         if gear == 0:
             gear_penalty = 1
@@ -95,8 +102,9 @@ class Environment:
         reward = (self.progress - self.prev_progress) * 10 \
          - 5 * gear_penalty \
          - 10 * break_accel_penalty \
-         - 10 * start_penalty\
-         + self.vehicle.get_relative_hp()
+         - 10 * start_penalty \
+         + self.vehicle.get_relative_hp() \
+         + 5 *velocity_reward
 
         if self.progress <= self.prev_progress:
             reward -= 10

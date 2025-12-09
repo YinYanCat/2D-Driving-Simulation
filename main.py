@@ -82,7 +82,7 @@ def player_main():
 
 
 def main():
-    load = False
+    load = True
     env = Environment(render=load)
     env.reset()
     learning_rate = 0.001
