@@ -1,5 +1,4 @@
 from numpy import random
-from sympy.physics.units import velocity
 
 from src.Circuit import Circuit
 from src.Vehicle import Vehicle
@@ -13,6 +12,12 @@ import itertools
 class Environment:
 
     def __init__(self, render=True):
+        self.n_checkpoints = 50
+        self.check_point_perc = (100 / self.n_checkpoints)
+        self.check_point_reward = 500000/self.n_checkpoints
+        self.crash_penalty = -500000
+        self.prev_rel_hp = None
+        self.rel_hp = None
         self.start_y = None
         self.start_x = None
         self.progress = 0
@@ -21,25 +26,24 @@ class Environment:
         self.visual = None
         self.vehicle = None
         self.circuit = None
+        self.check_points = None
 
-        max_steer_angle = np.pi/1.5
-        self.steer_angles = [-max_steer_angle, -0.5*max_steer_angle, 0, 0.5*max_steer_angle,max_steer_angle]
+        max_steer_angle = 0.5*np.pi/1.5
+        self.steer_angles = [-max_steer_angle, 0, max_steer_angle]
         self.action_space = {
-            "gear_change": [0, 1, 2, 3, 4],
-            "brake": [0, 1],
-            "accel": [0, 1],
-            "steer": [0, 1, 2, 3, 4]
+            "gear_change": [0, 1, 2, 3],
+            "pedal": [0, 1, 2],
+            "steer": [0, 1, 2]
         }
 
         self.action_table = list(itertools.product(self.action_space["gear_change"],
-                                                    self.action_space["brake"],
-                                                    self.action_space["accel"],
+                                                    self.action_space["pedal"],
                                                     self.action_space["steer"]))
 
         self.n_actions = len(self.action_table)
 
     def sample_action(self):
-        idx = random.randint(0,self.n_actions)
+        idx = random.randint(self.n_actions)
         action = self.action_table[idx]
 
         return idx, action
@@ -50,9 +54,18 @@ class Environment:
     def reset(self):
         self.progress = 0
         self.prev_progress = 0
+        self.rel_hp = 1
+        self.prev_rel_hp = 1
+
+        self.retro = 0
+        self.quieto = 0
+        self.frames = 0
+
+
+        self.check_points = np.zeros(self.n_checkpoints)
         t = symbols("t")
         self.circuit = Circuit(x_func=t, y_func=sin(t), var_symbol=t, variable_start=-10, variable_finish=10)
-        self.vehicle = Vehicle(gear_ratios=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500,
+        self.vehicle = Vehicle(gear_ratios=[3.5, 1.7, 0.25, -0.25], friction_coef=1, max_velocity=10, max_brake=500,
                                max_force=100)
         x, y = self.circuit.get_start()
         self.start_x, self.start_y = x, y
@@ -76,39 +89,32 @@ class Environment:
     def get_img_size(self):
         return 180, 180
 
-    def get_reward_progress(self, action):
+    def get_reward_progress(self, action, n_steps=2000):
         vx, vy = self.vehicle.get_relative_velocity()
         v = np.hypot(vx, vy)
-        if v > 0:
-            velocity_reward = 1
-        else:
-            velocity_reward = 0
-        gear = self.vehicle.get_gear_ratios()[action[0]]
-        if gear == 0:
-            gear_penalty = 1
-        else:
-            gear_penalty = 0
-        if action[1] == action[2]:
-            break_accel_penalty = 1
-        else:
-            break_accel_penalty = 0
 
-        x, y = self.vehicle.get_pos()
-        if self.start_x == x and self.start_y == y:
-            start_penalty = 1
-        else:
-            start_penalty = 0
+        reward = -5 # Inicia con penalización por paso
 
-        reward = (self.progress - self.prev_progress) * 10 \
-         - 5 * gear_penalty \
-         - 10 * break_accel_penalty \
-         - 10 * start_penalty \
-         + self.vehicle.get_relative_hp() \
-         + 5 *velocity_reward
+        delta_progress = (self.progress - self.prev_progress)
+        delta_hp = (self.rel_hp - self.prev_rel_hp)
 
-        if self.progress <= self.prev_progress:
-            reward -= 10
-        self.prev_progress = self.progress
+        reward += delta_progress * 50000
+
+        checkpoint_idx = int(self.progress * 100 / self.check_point_perc)
+        checkpoint_idx = min(checkpoint_idx, self.n_checkpoints - 1)
+
+        if checkpoint_idx > 0 and int(self.progress*100) % self.check_point_perc == 0 and self.check_points[checkpoint_idx] == 0:
+            self.check_points[checkpoint_idx] = 1
+            reward += self.check_point_reward
+
+
+        if delta_progress < -0.0001:
+            reward -= 100
+
+        if abs(delta_progress) < 0.0001 and v == 0: # Penalización por quedarse quieto
+            if delta_hp == 0:
+                reward += self.crash_penalty / n_steps
+
         return reward
 
     def get_state(self):
@@ -116,10 +122,16 @@ class Environment:
 
         x, y = self.vehicle.get_pos()
         # Circuito
-        self.progress = self.circuit.get_progress(x, y)
+        state.append(self.prev_progress)
+        self.prev_progress = self.progress
+        t, self.progress = self.circuit.get_progress(x, y)
         state.append(self.progress)
+        state.append(self.circuit.angle_of_curve(t))
         # Vehicle
-        state.append(self.vehicle.get_relative_hp())
+        state.append(self.prev_rel_hp)
+        self.prev_rel_hp = self.rel_hp
+        self.rel_hp = self.vehicle.get_relative_hp()
+        state.append(self.rel_hp)
         state.append(self.vehicle.get_weight())
         state.append(self.vehicle.get_width()/self.circuit.get_width())
 
@@ -153,27 +165,36 @@ class Environment:
 
         return img, state
 
-    def step(self, action, dt=0.1):
-        reward = 0
+    def step(self, action, n_steps=2000, dt=0.01):
         self.circuit.cicle_lights_state()
         self.vehicle.change_gear(action[0])
-        if action[1]:
-            self.vehicle.brake(dt)
-        elif action[2]:
-            self.vehicle.accelerate()
-        else:
+        if action[1] == 0:
             self.vehicle.idle()
+        elif action[1] == 1:
+            self.vehicle.brake(dt)
+        elif action[1] == 2:
+            self.vehicle.accelerate()
 
-        self.vehicle.set_steer_angle(self.steer_angles[action[3]])
+        self.vehicle.set_steer_angle(self.steer_angles[action[2]])
 
         self.vehicle.update(dt)
         self.vehicle.check_outside(self.circuit)
 
-        if self.vehicle.check_collision(self.circuit):
-            reward =-10
+        self.vehicle.check_collision(self.circuit)
 
         image, state = self.get_state()
-        reward += self.get_reward_progress(action)
-        done = self.progress >= 1 or self.vehicle.get_relative_hp() <= 0
+        reward = self.get_reward_progress(action, n_steps=n_steps)
+
+        is_finish = self.progress >= 1
+        is_crashed = self.rel_hp <= 0
+
+
+        if is_crashed:
+            reward += self.crash_penalty
+
+        if is_finish:
+            reward += 0
+
+        done = is_finish or is_crashed
 
         return image, state, reward, done

@@ -96,7 +96,7 @@ class DeepSarsa:
             if verbose == 1:
                 print(f"Episodio de prueba {eps} iniciado")
             for step in range(n_steps):
-                next_state_img, next_state, reward, end = self.env.step(action)
+                next_state_img, next_state, reward, end = self.env.step(action, n_steps=n_steps)
 
                 total_reward += reward
 
@@ -109,7 +109,7 @@ class DeepSarsa:
                 if end:
                     break
                 if verbose >= 2:
-                    print(f"Episode {eps} Step {step}: Reward {reward:.3f}, Progress {state[0]:.3f}, HP {state[1]:.3f}")
+                    print(f"Episode {eps} Step {step}: Reward {reward:.4f}, Progress {state[1]*100:.3f}%, HP {state[4]:.3f}")
 
             et = time.time()
             dt = et - st
@@ -131,18 +131,17 @@ class DeepSarsa:
 
         plot_rewards(rewards_per_episode)
 
-    def play(self, n_episodes=1, verbose=0):
+    def play(self, n_episodes=1, n_steps=2000, verbose=0):
         self.qnet.eval()
         for eps in range(n_episodes):
             total_reward = 0
             state_img, state = self.env.reset()
-            end = False
 
-            while not end:
+            for step in range(n_steps):
                 with torch.no_grad():
                     action_idx, action = self.epsilon_greedy_action(state_img, state, epsilon=0)
+                state_img, state, reward, end = self.env.step(action, n_steps=n_steps)
                 print(action)
-                state_img, state, reward, end = self.env.step(action)
 
                 total_reward += reward
 

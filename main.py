@@ -25,7 +25,6 @@ def player_main():
 
     clock = pygame.time.Clock()
     running = True
-
     while running:
         dt = clock.tick(60) / 1000  # segundos por frame
 
@@ -82,8 +81,9 @@ def player_main():
 
 
 def main():
-    load = True
-    env = Environment(render=load)
+    play = False
+    train_from_load = False
+    env = Environment(render=play)
     env.reset()
     learning_rate = 0.001
     discount_factor = 0.99
@@ -91,10 +91,15 @@ def main():
     # Crear agente
     agent = DeepSarsa(learning_rate, discount_factor, env)
 
-    if load and agent.load():
-        agent.play(1, verbose=0)
-    else:
-        agent.train(600, 2000, verbose=1)
+    if play: # evaluación
+        if agent.load():
+            agent.play(1, verbose=0)
+        else:
+            return
+    else: # entrenado
+        if train_from_load:
+            agent.load()
+        agent.train(100, 1000, verbose=1)
         agent.save()
 
 

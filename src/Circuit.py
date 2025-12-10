@@ -7,12 +7,14 @@ import random
 import math
 
 class Circuit:
-    def __init__(self, x_func, y_func, var_symbol, variable_start=0, variable_finish=10, circuit_width=1):
+    def __init__(self, x_func, y_func, var_symbol, variable_start=0, variable_finish=10, circuit_width=1, use_obstacles=False):
         self.function = [x_func,y_func]
         self.var = var_symbol
 
         self.variable_start = variable_start
         self.variable_finish = variable_finish
+
+        self.use_obstacles = use_obstacles
 
         self.dx = diff(x_func,self.var)
         self.dy = diff(y_func, self.var)
@@ -92,10 +94,11 @@ class Circuit:
         self.x2 = self._x2f(ts)
         self.y2 = self._y2f(ts)
 
-        self.save_random_points(self.traffic_lights, 6)
-        for i in range(len(self.traffic_lights)):
-            self.traffic_lights_state.append((0,255,0))
-        self.save_random_points(self.crosswalks, 6, self.traffic_lights)
+        if self.use_obstacles:
+            self.save_random_points(self.traffic_lights, 6)
+            for i in range(len(self.traffic_lights)):
+                self.traffic_lights_state.append((0,255,0))
+            self.save_random_points(self.crosswalks, 6, self.traffic_lights)
 
     def save_random_points(self, points_list, inter, block_list=None):
         start = self.ts[0]
@@ -228,7 +231,7 @@ class Circuit:
     def get_progress(self, px, py):
         t, x, y = self.nearest_curve_point(px, py)
         progress = (t-self.variable_start)/(self.variable_finish-self.variable_start)
-        return np.clip(progress, 0.0, 1.0)
+        return t, np.clip(progress, 0.0, 1.0)
     # -----------
 
     # VISUAL
