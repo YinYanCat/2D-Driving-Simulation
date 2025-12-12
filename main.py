@@ -1,89 +1,77 @@
-from src.Circuit import Circuit
-from src.Vehicle import Vehicle
-from src.Visuals import Visual
 from src.Environment import Environment
 from src.DeepSarsa import DeepSarsa
-from sympy import symbols
-from sympy.functions import *
+
 import numpy as np
 import pygame
 
 
-def player_main():
-    t = symbols("t")
-    circuit = Circuit(x_func=t, y_func=sin(t), var_symbol=t, variable_start=-10, variable_finish=10)
-    vehicle = Vehicle(gear_ratios=[0, 3.5, 1.7, 0.25, -1], friction_coef=1, max_velocity=10, max_brake=500, max_force=100)
+def player_main(verbose=0):
 
-    visual = Visual(render=True)
-    visual.add_vehicle(vehicle)
-    visual.set_circuit(circuit)
-    x,y = circuit.get_start()
-    #print(x,y)
-    vehicle.set_pos(x,y)
-    vehicle.set_heading(circuit.get_angle_start())
+    env = Environment(max_steps=4000)
+    env.reset()
     pygame.init()
 
     clock = pygame.time.Clock()
     running = True
+    state_dim, action_dim = env.get_dim()
+    total_reward = 0
+    step = 0
     while running:
         dt = clock.tick(60) / 1000  # segundos por frame
-
-        circuit.cicle_lights_state()
+        step += 1
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.VIDEORESIZE:
-                width, height = event.w, event.h
-                visual.fit_screen(width, height)
+
 
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_0]:
-            vehicle.change_gear(0)
+
+        action = np.zeros(action_dim, dtype=int)
+
+        if keys[pygame.K_r]:
+            env.reset()
+            total_reward = 0
+            step = 0
+
+            continue
+
         if keys[pygame.K_1]:
-            vehicle.change_gear(1)
+            action[0] = 0
         if keys[pygame.K_2]:
-            vehicle.change_gear(2)
+            action[0] = 1
         if keys[pygame.K_3]:
-            vehicle.change_gear(3)
+            action[0] = 2
         if keys[pygame.K_4]:
-            vehicle.change_gear(4)
+            action[0] = 3
         if keys[pygame.K_SPACE]:
-            vehicle.brake(dt)
+            action[1] = 1
         elif keys[pygame.K_LSHIFT]:
-            vehicle.accelerate()
+            action[1] = 2
         else:
-            vehicle.idle()
+            action[1] = 0
 
-        if keys[pygame.K_p]:
-            tem_x, tem_y = vehicle.get_pos()
-            tem_x, tem_y = circuit.world_to_screen(tem_x, tem_y)
-            tem_scale = circuit.get_scale()*0.6
-            visual.take_circular_ss(tem_x-tem_scale*4, tem_y-tem_scale*4, tem_scale*8, tem_scale*8)
 
-        if keys[pygame.K_a]:
-            steer_angle = np.pi/1.5
-            if keys[pygame.K_w]:
-                steer_angle*=0.5
-            vehicle.set_steer_angle(steer_angle*0.5)
+        if keys[pygame.K_d]:
+            action[2] = 0
+        elif keys[pygame.K_a]:
+            action[2] = 2
+        elif keys[pygame.K_w]:
+            action[2] = 1
+        else:
+            action[2] = 3
 
-        elif keys[pygame.K_d]:
-            steer_angle = -np.pi/1.5
-            if keys[pygame.K_w]:
-                steer_angle*=0.5
-            vehicle.set_steer_angle(steer_angle*0.5)
-
-        vehicle.update(dt)
-        vehicle.check_collision(circuit)
-        vehicle.check_outside(circuit)
-
-        visual.draw()
+        image, state, reward, done = env.step(action, dt=dt)
+        if not done:
+            total_reward += reward
+            if verbose >= 1:
+                print(f"Step: {step}    Reward: {reward:.2f}    Total Reward: {total_reward:.2f}")
 
 
 def main():
-    play = False
+    play = True
     train_from_load = False
-    env = Environment(render=play)
+    env = Environment(render=play, max_steps=4000)
     env.reset()
     learning_rate = 0.001
     discount_factor = 0.99
@@ -93,16 +81,17 @@ def main():
 
     if play: # evaluación
         if agent.load():
-            agent.play(1, verbose=0)
+            agent.play(n_episodes=1, n_steps=4000, verbose=0)
         else:
             return
     else: # entrenado
         if train_from_load:
             agent.load()
-        agent.train(100, 1000, verbose=1)
+        # Ojala epsilon_dec = 1*x^(n_steps/2)=0.222...
+        agent.train(100, 2000, epsilon_dec=0.985,verbose=1)
         agent.save()
 
 
 if __name__ == '__main__':
     main()
-    #player_main()
+    #player_main(verbose=1)

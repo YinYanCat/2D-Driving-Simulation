@@ -12,7 +12,7 @@ def plot_rewards(rewards):
     plt.xlabel("Episodio")
     plt.ylabel("Reward total")
     plt.title("Evolución del reward durante el entrenamiento")
-    plt.savefig("reward_plot.png")
+    plt.savefig("reward_plot1.png")
     plt.close()
 
 
@@ -80,7 +80,7 @@ class DeepSarsa:
         loss.backward()
         self.qnet_optim.step()
 
-    def train(self, n_episodes, n_steps, verbose=0):
+    def train(self, n_episodes, n_steps, epsilon_dec=0.995,verbose=0):
         start_time = time.time()
         dts = []
         n_dts = 5
@@ -94,9 +94,9 @@ class DeepSarsa:
             action_idx, action = self.epsilon_greedy_action(state_img, state, epsilon=epsilon)
 
             if verbose == 1:
-                print(f"Episodio de prueba {eps} iniciado")
+                print(f"Episode {eps} has started")
             for step in range(n_steps):
-                next_state_img, next_state, reward, end = self.env.step(action, n_steps=n_steps)
+                next_state_img, next_state, reward, end = self.env.step(action=action)
 
                 total_reward += reward
 
@@ -120,14 +120,14 @@ class DeepSarsa:
             remaining_time = ((n_episodes-eps-1)*avg_dt)/60
 
             if verbose == 1:
-                print(f"Episodio de prueba {eps} terminado")
-                print(f"Tiempo restante: {remaining_time:.0f} minutos")
+                print(f"Episode {eps} has finished with a reward of {total_reward:.2f}")
+                print(f"Remaining time: {remaining_time:.0f} minutes")
 
-            epsilon = max(0.2, epsilon * 0.995)
+            epsilon = max(0.2, epsilon * epsilon_dec)
 
             rewards_per_episode.append(total_reward)
         end_time = time.time()
-        print(f" Tiempo de ejecución: {(end_time-start_time)/60:.0f} minutos")
+        print(f" Execution time: {(end_time-start_time)/60:.0f} minutes")
 
         plot_rewards(rewards_per_episode)
 
@@ -140,8 +140,7 @@ class DeepSarsa:
             for step in range(n_steps):
                 with torch.no_grad():
                     action_idx, action = self.epsilon_greedy_action(state_img, state, epsilon=0)
-                state_img, state, reward, end = self.env.step(action, n_steps=n_steps)
-                print(action)
+                state_img, state, reward, end = self.env.step(action=action)
 
                 total_reward += reward
 
@@ -149,23 +148,23 @@ class DeepSarsa:
                     break
                 if verbose == 1:
                     print(f"Reward {reward:.3f}, Progress {state[0]:.3f}, HP {state[1]:.3f}")
-            print(f"Recompensa total del episodio: {total_reward}")
+            print(f"Total episode reward: {total_reward}")
 
     def save(self, path="qnetwork.pth"):
         torch.save(self.qnet.state_dict(), path)
-        print(f"Modelo guardado en {path}")
+        print(f"Model saved in {path}")
 
     def load(self, path="qnetwork.pth"):
         try:
             checkpoint = torch.load(path, map_location=self.device)
             self.qnet.load_state_dict(checkpoint)
-            print(f"Modelo cargado desde {path}")
+            print(f"Model loaded from {path}")
             return True
         except FileNotFoundError:
-            print(f"No se a encontrado un modelo para cargar en {path}")
+            print(f"A model couldn't be found at {path}")
             return False
         except Exception as e:
-            print(f"Error al cargar el modelo: {e}")
+            print(f"Error at loading model: {e}")
             return False
 
 

@@ -54,7 +54,6 @@ class Vehicle:
     def damage_vehicle(self):
         if self.hp >=1:
             self.hp -=1
-            print(f"lives: {self.hp}")
         else:
             self.hp = 0
 
@@ -172,10 +171,6 @@ class Vehicle:
         dot = np.dot(u1_shrink, u2_shrink)
 
         if dot > 1 - 1e-6:
-            self.idle()
-            self.force_stop()
-            self.damage_vehicle()
-            self.bounce_out(circuit)
             return True
         return False
 
@@ -201,9 +196,18 @@ class Vehicle:
         v = np.hypot(self.current_x_velocity, self.current_y_velocity)
         self.heading += (v / L) * np.tan(self.steer_angle) * dt
 
+        self.heading = (self.heading + np.pi) % (2*np.pi) - np.pi
+
         self.calculate_position(dt)
 
         self.steer_angle *= self.steer_reposition**dt
+        if circuit:
+            self.check_outside(circuit)
+            if self.check_collision(circuit):
+                self.idle()
+                self.force_stop()
+                self.damage_vehicle()
+                self.bounce_out(circuit)
 
     # GETTERS
     # -----------
@@ -237,17 +241,17 @@ class Vehicle:
 
         if circuit:
             center_x, center_y = circuit.world_to_screen(self.x, self.y)
-            line_length = self.width*self.scale
+            line_length = 2*self.width*self.scale
             end_x, end_y = center_x + line_length * np.cos(-self.heading-self.steer_angle), center_y + line_length * np.sin(-self.heading-self.steer_angle)
 
             pygame.draw.circle(screen, (0, 0, 255), (center_x, center_y), self.width * self.scale)
-            pygame.draw.line(screen, (255, 0, 0), (center_x, center_y), (end_x, end_y), int(0.1*self.scale))
+            pygame.draw.line(screen, (255, 0, 0), (center_x, center_y), (end_x, end_y), int(0.15*self.scale))
         else:
             center_x, center_y = self.x, self.y
-            line_length = self.width * self.scale
+            line_length = 2*self.width * self.scale
             end_x, end_y = center_x + line_length * np.cos(-self.heading-self.steer_angle), center_y + line_length * np.sin(-self.heading-self.steer_angle)
 
             pygame.draw.circle(screen, (0,0,255),(self.x, self.y),self.width*self.scale)
-            pygame.draw.line(screen, (255, 0, 0), (center_x, center_y), (end_x, end_y), int(0.1*self.scale))
+            pygame.draw.line(screen, (255, 0, 0), (center_x, center_y), (end_x, end_y), int(0.15*self.scale))
 
     #-----------
