@@ -18,8 +18,8 @@ class QNetwork(nn.Module):
         self.conv2 = nn.Conv2d(out1_cnn, out2_cnn ,kernel_size=4, stride=2, padding=0)
         self.conv3 = nn.Conv2d(out2_cnn, out3_cnn, kernel_size=3, stride=1, padding=0)
 
-        w_out = conv2d_size_out(conv2d_size_out(conv2d_size_out(image_w, 4, 2), 2, 2), 1, 1)
-        h_out = conv2d_size_out(conv2d_size_out(conv2d_size_out(image_h, 4, 2), 2, 2), 1, 1)
+        w_out = conv2d_size_out(conv2d_size_out(conv2d_size_out(image_w, 8, 4), 4, 2), 3, 1)
+        h_out = conv2d_size_out(conv2d_size_out(conv2d_size_out(image_w, 8, 4), 4, 2), 3, 1)
         self.cnn_output_dim = out3_cnn * w_out * h_out
 
         #  Multilayer Perceptron para inputs continuos
