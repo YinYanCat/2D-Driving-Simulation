@@ -7,7 +7,7 @@ import random
 import math
 
 class Circuit:
-    def __init__(self, x_func, y_func, var_symbol, variable_start=0, variable_finish=10, circuit_width=1, use_obstacles=True):
+    def __init__(self, x_func, y_func, var_symbol, variable_start=0, variable_finish=10, circuit_width=1, use_obstacles=False):
         self.function = [x_func,y_func]
         self.var = var_symbol
 

@@ -12,7 +12,7 @@ def plot_rewards(rewards):
     plt.xlabel("Episodio")
     plt.ylabel("Reward total")
     plt.title("Evolución del reward durante el entrenamiento")
-    plt.savefig("reward_plot1.png")
+    plt.savefig("reward_plot.png")
     plt.close()
 
 

@@ -100,7 +100,7 @@ class Environment:
         return state_dim, action_dim
 
     def get_img_size(self):
-        return 180, 180
+        return 84, 84
 
     def get_reward_progress(self):
 

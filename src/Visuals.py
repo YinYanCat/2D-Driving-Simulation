@@ -41,9 +41,9 @@ class Visual:
 
     def start(self):
         if self.render:
-            self.screen = pygame.display.set_mode((800, 600))#, pygame.RESIZABLE)
+            self.screen = pygame.display.set_mode((int(800*(84/180)), int(600*(84/180))))#, pygame.RESIZABLE)
         else:
-            self.screen = pygame.Surface((800, 600))
+            self.screen = pygame.Surface((int(800*(84/180)), int(600*(84/180))))
 
     def get_subsurface(self, x, y, width, height):
         new_x, new_y = x, y

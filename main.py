@@ -74,7 +74,7 @@ def main():
     env = Environment(render=play, max_steps=4000)
     env.reset()
     learning_rate = 0.001
-    discount_factor = 0.99
+    discount_factor = 0.875
 
     # Crear agente
     agent = DeepSarsa(learning_rate, discount_factor, env)
@@ -88,7 +88,7 @@ def main():
         if train_from_load:
             agent.load()
         # Ojala epsilon_dec = 1*x^(n_steps/2)=0.222...
-        agent.train(100, 2000, epsilon_dec=0.985,verbose=1)
+        agent.train(600, 2000, epsilon_dec=0.995,verbose=1)
         agent.save()
 
 
